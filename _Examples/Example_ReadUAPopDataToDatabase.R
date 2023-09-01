@@ -108,12 +108,44 @@ dbGetQuery(con, 'SELECT * FROM states')
 
 
 ## Data file location
-# /Users/benclaassen/Documents/_Mines/AllData/_RawDataDownloads/Census/ACS 2020 5yr/Urban Areas/Age and Sex
+# /Users/benclaassen/Documents/_Mines/Data_MAIN/_RawDownloads/Census/ACS 2020 5yr/States/Age and Sex
+# /Users/benclaassen/Documents/_Mines/Data_MAIN/_RawDownloads/Census/ACS 2020 5yr/States/Median Income
 
 ## File
 # ACSST5Y2020.S0101-Data.csv
+# ACSST5Y2020.S1903-Data.csv
 
 ## Variable names
 # GEO_ID
-# S0101_C01_001E
-# S0101_C01_001M
+# S0101_C01_001E - Total Pop, Est
+# S0101_C01_001M - Total Pop, MOE
+# S1903_C03_001E - Median income, Est
+# S1903_C03_001M - Median income, MOE
+
+
+# Total pop ---------------------------------------------------------------
+setwd("/Users/benclaassen/Documents/_Mines/Data_MAIN/_RawDownloads/Census/ACS 2020 5yr/States/Age and Sex")
+pop1 <- read.csv("ACSST5Y2020.S0101-Data.csv") # Read data
+
+pop2 <- pop1 %>% select(GEO_ID, NAME, S0101_C01_001E, S0101_C01_001M) # Select cols
+
+names(pop2) <- c("GEO_ID", "StateName", "TotalPop_Est", "TotalPop_MOE") # Rename cols
+head(pop2)
+pop2 <- pop2[-1,] # Drop ACS names
+head(pop2)
+
+pop2$Id <- gsub("0400000US", "", pop2$GEO_ID) # Create integer ID col
+
+# Change class of est, moe, and id
+sapply(pop2[,3:5], class)
+pop2[,3:5] <- sapply(pop2[,3:5], as.numeric)
+sapply(pop2[,3:5], class)
+
+# Check [pop2]
+summary(pop2)
+head(pop2)
+
+# Assign all NA's in MOE cols to be equal to 0
+pop3 <- pop2 %>% mutate(TotalPop_MOE = replace_na(TotalPop_MOE, 0))
+summary(pop3)
+head(pop3)
