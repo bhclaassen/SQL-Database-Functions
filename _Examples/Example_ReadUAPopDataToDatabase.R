@@ -85,15 +85,15 @@ dbGetQuery(con, 'SELECT * FROM states_info')
 dbGetQuery(con, 
 '
   CREATE TABLE urbanareas (
-    rowid           int,            -- Unique row ID
-    urbanarea_geoid         varchar(44),    -- Urban Area GeoID
-    ua_var_id       char(2)         -- Variable ID for UA
-    ua_var_name
-    ua_var_source -- Variable source; e.g. "Census ACS"
-    ua_var_year -- Variable year for UA; e.g.: "2020"
-    ua_var_ -- Variable specifications for UA; e.g.: " 5yr estimates"
-    ua_var_est
-    ua_var_moe
+    rowid               int,            -- Unique row ID
+    urbanarea_geoid     varchar(44),    -- Urban Area GeoID
+    ua_var_id           char(2)         -- Variable ID for UA
+    ua_var_name         x -- Variable name
+    ua_var_source       x -- Variable source; e.g. "Census ACS"
+    ua_var_year         x -- Variable year for UA; e.g.: "2020"
+    ua_var_otherspecs   x -- Variable specifications for UA other than source and year; e.g.: "5yr ests"
+    ua_var_est          x -- variable estimate
+    ua_var_moe          x -- variable margin of error (MOE)
 );
 ')
 
