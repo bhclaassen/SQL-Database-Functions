@@ -5,9 +5,11 @@
 # 2023-09-01
 # -------------------------------------------------------------------------
 
-
+require("RPostgreSQL")
+require("tidyverse")
 
 # Establish database connection -------------------------------------------
+
 
 # Setup connection with database
 con <- dbConnect("PostgreSQL", dbname = "themines",
@@ -84,19 +86,21 @@ dbGetQuery(con, 'SELECT * FROM states_info')
 # Create new table
 dbGetQuery(con, 
 '
-  CREATE TABLE urbanareas (
-    rowid               int,            -- Unique row ID
-    urbanarea_geoid     varchar(44),    -- Urban Area GeoID
-    ua_var_id           char(2)         -- Variable ID for UA
-    ua_var_name         x -- Variable name
-    ua_var_source       x -- Variable source; e.g. "Census ACS"
-    ua_var_year         x -- Variable year for UA; e.g.: "2020"
-    ua_var_otherspecs   x -- Variable specifications for UA other than source and year; e.g.: "5yr ests"
-    ua_var_est          x -- variable estimate
-    ua_var_moe          x -- variable margin of error (MOE)
+  CREATE TABLE states (
+    rowid               bigserial,      -- Unique row ID
+    state_geoid         int,            -- State GeoID
+    state_name          varchar(44),    -- State name
+    st_var_id           varchar(30),    -- Variable ID for state
+    st_var_name         varchar(100),   -- Variable name
+    st_var_est          numeric,        -- variable estimate
+    st_var_moe          numeric,        -- variable margin of error (MOE)
+    st_var_source       varchar(100),   -- Variable source; e.g. "Census ACS"
+    st_var_year         int,            -- Variable year for UA; e.g.: "2020"
+    st_var_otherspecs   varchar(100)    -- Variable specifications for state other than source and year; e.g.: "5yr ests"
 );
 ')
 
+dbGetQuery(con, 'SELECT * FROM states')
 
 # -------------------------------------------------------------------------
 # Example 3 - Add data with estimates and MOEs from CSV
