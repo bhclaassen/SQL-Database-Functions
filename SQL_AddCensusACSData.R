@@ -17,12 +17,9 @@ variableName = ""
 
 
 
-sql_addCensusDataToDatabase <- function(dbConnection, sqlTableName, dataFrameToAdd, variableID, variableName = "", dataSource, dataYear, dataOtherSpecs) {
-  ## DATA FRAME MUST HAVE 3 COLS
-  # [1] ID
-  # [2] Estimate
-  # [3] MOE
-  
+sql_addCensusDataToDatabase <- function(dbConnection, sqlTableName, dataFrameToAdd) {#, variableID, variableName = "", dataSource, dataYear, dataOtherSpecs) {
+
+  dbGetQuery(con, 'SELECT * FROM INFORMATION_SCHEMA.COLUMNS')
   ## Check for errors -----------------------------------------------------
   
   # [dbConnection] must be a "PostgreSQLConnection", else throw error
@@ -54,10 +51,18 @@ sql_addCensusDataToDatabase <- function(dbConnection, sqlTableName, dataFrameToA
   if(class(dataFrameToAdd) != "data.frame") {
     stop("ERROR: [dataFrameToAdd] must be a data.frame")
   }
+  
+
+# -------------------------------------------------------------------------
+
+  
   # If [dataFrameToAdd] does not have 3 column, throw error
   if(dim(dataFrameToAdd)[2] != 3) {
     stop("ERROR: Dataset must have 3 columns: {ID, Estimate, MOE}")
   }
+
+# -------------------------------------------------------------------------
+
   
   
   
