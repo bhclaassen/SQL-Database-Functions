@@ -3,85 +3,133 @@
 # -------------------------------------------------------------------------
 # -------------------------------------------------------------------------
 # Test variables
+
+
+require("RPostgreSQL")
+require("tidyverse")
+
+# Setup connection with database
+con <- dbConnect("PostgreSQL", dbname = "themines",
+                 host = "127.0.0.1", port = 5432,
+                 user = "benclaassen", password = "")
+# Test connection
+dbGetQuery(con, 'SELECT * FROM states_info')
+
+
+# -------------------------------------------------------------------------
+
+pop5 <- pop4[,c(1:2)]
+head(pop5)
+names(pop5) <- c("state_geoid", "state_name")
+
+pop5$st_var_id <- "S0101_C01_001"
+pop5$st_var_name <- "TotalPopulation"
+pop5$st_var_est <- pop4[,3]
+pop5$st_var_moe <- pop4[,4]
+
+pop5$st_var_source <- "Census ACS"
+pop5$st_var_year <- "2020"
+pop5$st_var_otherspecs <- "5yr estimates"
+
+head(pop5)
+
+
+
+
+
+# -------------------------------------------------------------------------
+
+# rowid
+# state_geoid
+# state_name
+# st_var_id
+# st_var_name
+# st_var_est
+# st_var_moe
+# st_var_source
+# st_var_year
+# st_var_otherspecs
+
+# -------------------------------------------------------------------------
+# Internal function parameters
 dbConnection = con
 sqlTableName = "states"
-dataFrameToAdd = pop4[, c(1,3,4)]
-names(dataFrameToAdd)[2] <- "TotalPop"
-variableID = "S0101_C01_001"
-dataSource = "Census ACS"
-dataYear = "2020"
-dataOtherSpecs = "5yr"
-variableName = ""
-
+dataFrameToAdd = pop5
 # -------------------------------------------------------------------------
 
 
 
-sql_addCensusDataToDatabase <- function(dbConnection, sqlTableName, dataFrameToAdd) {#, variableID, variableName = "", dataSource, dataYear, dataOtherSpecs) {
+sql_addCensusDataToDatabase <- function(dbConnection, sqlTableName, dataFrameToAdd) {
 
-  dbGetQuery(con, 'SELECT * FROM INFORMATION_SCHEMA.COLUMNS')
-  ## Check for errors -----------------------------------------------------
+
+# Shorthand steps ---------------------------------------------------------
+# ~DONE~ check for input errors
+# ~DONE~ set connection
+# ~DONE~ pull table names
+# ~DONE~ confirm sql table names match input data.frame table names
+# convert [dataFrameToAdd] to sql format
+# write [dataFrameToAdd] to table
+# close db connection
+
   
-  # [dbConnection] must be a "PostgreSQLConnection", else throw error
+
+# -------------------------------------------------------------------------
+# START FCN UPDATE --------------------------------------------------------
+# -------------------------------------------------------------------------
+
+
+  # -----------------------------------------------------------------------
+  # Check for input errors ------------------------------------------------
+  
+  # Confirm [dataFrameToAdd] is a data.frame
+  if(class(dataFrameToAdd) != "data.frame") {
+    stop("ERROR: [dataFrameToAdd] is not a data.frame")
+  }
+  
+  # Confirm connection is valid -> [dbConnection] must be a "PostgreSQLConnection", else throw error
   if(class(dbConnection) != 'PostgreSQLConnection') {
     stop("ERROR: [dbConnection] must be a useable database connection")
   }
   
-  # [sqlTableName] must be a string, and must exist in the database represented by [dbConnection]
-  if( class(sqlTableName) == "character" ){
-    
-    # Check if given table exists
-    ifTableExists <- dbGetQuery(dbConnection,
+  # Confirm [sqlTableName] is a valid table via [dbConnection]
+  ifTableExists <- as.logical( # Pull table status
+    dbGetQuery(dbConnection,
       paste0("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = '", sqlTableName, "');" )      
     )
-    
-    # Convert to logical
-    ifTableExists <- as.logical(ifTableExists)
-    
-    # If table doesn't exist, exit function
-    if( !ifTableExists ) {
-      stop( paste0("ERROR: Table '", sqlTableName, "' does not exist in [dbConnection]") )
+  )
+  # If table doesn't exist, exit function
+  if( !ifTableExists ) {
+    tableExistenceErrorStatement <- paste0("ERROR: Table '", sqlTableName, "' does not exist in [dbConnection]") # Stop statement does not process 'paste0' command, therefore pre-paste to get statement
+    stop( tableExistenceErrorStatement )
+  }
+  rm(ifTableExists) # Remove status if true, i.e. if statement above evaluates TRUE
+  
+  
+
+  # ----------------------------------------------------------------------
+  # Confirm that names of target table match input data.frame [dataFrameToAdd]
+  # NOTE: If the first column in SQL table is "rowid" then it is the PROPER KEY. This is a SERIAL data type, and is handled automatically by PSQL
+  
+  sqlTableColumnNames <- names(
+    dbGetQuery(dbConnection, paste0("SELECT * FROM ", sqlTableName," WHERE false;") )
+  )
+  
+  if( sqlTableColumnNames[1] == "rowid") { # IF first sql table column name is the SERIAL var 'rowid'...
+    if( !( identical( sqlTableColumnNames[-1], names(dataFrameToAdd) ) ) ) { # ...THEN all names except the first must match; ...
+      stop("ERROR: Names of input table [dataFrameToAdd] do not match names of [sqlTableName] (Column 1: 'rowid' EXCLUDED)")
     }
-      
-  } else {
-    stop("ERROR: [sqlTableName] must be a character")
+  } else if( !( identical( sqlTableColumnNames, names(dataFrameToAdd) ) ) ) { # ...ELSE, first sql table column name is not the SERIAL var 'rowid', THEN all names must match
+    stop("ERROR: Names of input table [dataFrameToAdd] do not match names of [sqlTableName] (Column 1: 'rowid' INCLUDED)")
   }
   
-  # [dataFrameToAdd] must be a dataframe, else throw error
-  if(class(dataFrameToAdd) != "data.frame") {
-    stop("ERROR: [dataFrameToAdd] must be a data.frame")
-  }
   
-
+# -------------------------------------------------------------------------
+# UPDATED TO HERE ---------------------------------------------------------
 # -------------------------------------------------------------------------
 
-  
-  # If [dataFrameToAdd] does not have 3 column, throw error
-  if(dim(dataFrameToAdd)[2] != 3) {
-    stop("ERROR: Dataset must have 3 columns: {ID, Estimate, MOE}")
-  }
-
-# -------------------------------------------------------------------------
 
   
   
-  
-  ## Change inputs to strings if not currently ----------------------------
-  
-  # Convert [dataSource] to string if it is not already
-  if(class(dataSource) != "character") {
-    dataSource <- as.character(dataSource)
-  }
-  # Convert [dataYear] to string if it is not already
-  if(class(dataYear) != "character") {
-    dataYear <- as.character(dataYear)
-  }
-  # Convert [dataOtherSpecs] to string if it is not already
-  if(class(dataOtherSpecs) != "character") {
-    dataOtherSpecs <- as.character(dataOtherSpecs)
-  }
-  
-
   # -----------------------------------------------------------------------
   # Transform data.frame into format for SQL input
   ### dbGetQuery(con, "
@@ -128,14 +176,7 @@ dataToAdd
 # -------------------------------------------------------------------------
 # -------------------------------------------------------------------------
 
-set connection
-pull table 
-print table names
-print [dataFrameToAdd] names
-ask user to confirm names match
-convert [dataFrameToAdd] to sql format
-write [dataFrameToAdd] to table
-close db connection
+
 
 
 # -------------------------------------------------------------------------
@@ -144,6 +185,6 @@ close db connection
 
   
 }
-## get sql col name ->
-dbGetQuery(con, 'SELECT * FROM states')
+## get sql col names ->
+dbGetQuery(con, 'SELECT * FROM states WHERE false')
 
