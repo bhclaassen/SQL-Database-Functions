@@ -1,6 +1,4 @@
 
-
-
 # -------------------------------------------------------------------------
 # Function to take data from long-form SQL database and transform it to a
 #    wide-format dataframe
@@ -20,10 +18,12 @@ con <- dbConnect("PostgreSQL", dbname = "themines",
 # Internal function values ------------------------------------------------
 
 dbConnection <- con
-keepGeographyName = FALSE
-closeConnection = TRUE
+keepGeographyName = TRUE
+closeConnection = FALSE
 
-sqlQuery <- "SELECT *    FROM states WHERE st_var_name = 'TotalPopulation'"
+# sqlQuery <- "SELECT *    FROM states WHERE st_var_name = 'TotalPopulation'"
+sqlQuery <- "SELECT *    FROM states WHERE state_geoid < 100 "
+
 head(
   dbGetQuery(con, sqlQuery)
 )
@@ -33,7 +33,7 @@ dim(
 
 # -------------------------------------------------------------------------
 
-# pullSqlData <- function(dbConnection, sqlQuery, keepGeographyName = FALSE, closeConnection = TRUE) {
+pullSqlData <- function(dbConnection, sqlQuery, keepGeographyName = FALSE, closeConnection = TRUE) {
   
   # Steps -----------------------------------------------------------------
   
@@ -46,6 +46,8 @@ dim(
   
   # PROCESSING
   ## Transform form long format to wide format
+  ## Rename Est and MOE cols
+  ## Gather Est and MOE columns together by variable
   
   # RETURN AND EXIT
   ## Close connection
@@ -102,32 +104,54 @@ dim(
   
 
   # Find columns to keep
-  colName_geoid <- grep("geoid", names(dat_internal1))
-  colName_name <- grep("", names(dat_internal1))
-  colName_varEst <- grep("", names(dat_internal1))
-  colName_varMOE <- grep("", names(dat_internal1))
+  colName_geoid <- names(dat_internal1)[ grep("geoid", names(dat_internal1), ignore.case = TRUE) ]
+  colName_varName <- names(dat_internal1)[ grep("var_name", names(dat_internal1), ignore.case = TRUE) ]
+  colName_varEst <- names(dat_internal1)[ grep("var_est", names(dat_internal1), ignore.case = TRUE) ]
+  colName_varMOE <- names(dat_internal1)[ grep("var_moe", names(dat_internal1), ignore.case = TRUE) ]
+  
+  
+  tmp_colNum_name <- grep("name", names(dat_internal1), ignore.case = TRUE)
+  colName_name <- names(dat_internal1)[ tmp_colNum_name[ -grep("var_name", names(dat_internal1)[tmp_colNum_name]) ] ]# Drop column number for 'x_var_name'
+  
   
   # Collate columns to keep
   if(keepGeographyName) {
-    varNamesToKeep <- c()
+    colsToKeep <- c(colName_geoid, colName_name, colName_varName, colName_varEst, colName_varMOE)
   } else {
-    varNamesToKeep <- c()
+    colsToKeep <- c(colName_geoid, colName_varName, colName_varEst, colName_varMOE)
   }
   
   # Select columns to keep
-  dat_internal2 <- dat_internal1 %>% 
-    
-  # Rename columns
-  
+  dat_internal2 <- dat_internal1 %>% select( all_of(colsToKeep) )
     
 
   # -----------------------------------------------------------------------
   # Transform data from long-format to wide-format
+  dat_internal3 <- dat_internal2 %>% pivot_wider(names_from = colName_varName, values_from = all_of(c(colName_varEst, colName_varMOE)) )
+  dat_internal3 <- as.data.frame(dat_internal3)
   
-    
+  # Rename Est and MOE cols -----------------------------------------------
+  # Construct est var names
+  varEsts_ColNums <- grep(".+_var_est_", names(dat_internal3))
+  varEsts_newNames <- gsub(".+_var_est_", "", names(dat_internal3)[varEsts_ColNums])
+  varEsts_newNames <- paste0(varEsts_newNames, "_est")
+  
+  # Construct MOE var names
+  varMOEs_ColNums <- grep(".+_var_moe_", names(dat_internal3))
+  varMOEs_newNames <- gsub(".+_var_moe_", "", names(dat_internal3)[varMOEs_ColNums])
+  varMOEs_newNames <- paste0(varMOEs_newNames, "_moe")
+  
+  # Assign new names
+  names(dat_internal3)[varEsts_ColNums] <- varEsts_newNames
+  names(dat_internal3)[varMOEs_ColNums] <- varMOEs_newNames
   
   
-  
+  # Gather Est and MOE cols by variable -----------------------------------
+  if(keepGeographyName) {
+    dat_internal4 <- dat_internal3 %>% select( all_of( c(colName_geoid, colName_name, sort(names(dat_internal3)[-c(1:2)]) ) ) ) # Sort all but the first two names [id] [geographic name]
+  } else {
+    dat_internal4 <- dat_internal3 %>% select( all_of( c(colName_geoid, sort(names(dat_internal3)[-1]) ) ) ) # Sort all but the first name [id]
+  }
   
   
   # ~ RETURN AND EXIT ~ ---------------------------------------------------
@@ -137,5 +161,10 @@ dim(
     dbDisconnect(dbConnection)
   }
   
-  return(...)
-# }
+  return(dat_internal4)
+}
+
+
+# sqlQuery <- "SELECT *    FROM states WHERE st_var_name = 'TotalPopulation'"
+sqlQuery <- "SELECT *    FROM states WHERE state_geoid < 100 "
+head(pullSqlData(con, sqlQuery, TRUE, FALSE))
