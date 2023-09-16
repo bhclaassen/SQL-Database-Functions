@@ -3,7 +3,7 @@
 # Function to add Census data to SQL database
 # Author: Ben Claassen
 # Started: 2023-08-04
-# Updated: 2023-09-15
+# Updated: 2023-09-16
 # -------------------------------------------------------------------------
 
 sql_addCensusDataToDatabase <- function(dbConnection, sqlTableName, dataFrameToAdd) {
@@ -14,18 +14,28 @@ sql_addCensusDataToDatabase <- function(dbConnection, sqlTableName, dataFrameToA
   
 
 # Steps -------------------------------------------------------------------
-# ~DONE~ check for input errors
-# ~DONE~ set connection
-# ~DONE~ pull table names
-# ~DONE~ confirm sql table names match input data.frame table names
-# ~DONE~ check if data already exists
-# ~DONE~ convert [dataFrameToAdd] to sql format
-# ~DONE~ write [dataFrameToAdd] to table
-# ~DONE~ confirm first row of [dataFrameToAdd] is in sql table
-# ~DONE~ close db connection
+# CHECKS
+## ~DONE~ check for input errors
+## ~DONE~ confirm connection
+## ~DONE~ confirm sql table names match input data.frame table names
+## ~DONE~ check if data already exists
+
+# PROCESSING
+## ~DONE~ convert [dataFrameToAdd] to sql format
+
+# MAIN 
+## ~DONE~ write [dataFrameToAdd] to table
+
+# CHECK
+## ~DONE~ confirm first row of [dataFrameToAdd] is in sql table
+
+# EXIT  
+## ~DONE~ close db connection
+# -------------------------------------------------------------------------
+
 
   
-  # -----------------------------------------------------------------------
+  # ~ Checks ~ ------------------------------------------------------------
   # Check for input errors ------------------------------------------------
   
   # Confirm [dataFrameToAdd] is a data.frame
@@ -53,7 +63,7 @@ sql_addCensusDataToDatabase <- function(dbConnection, sqlTableName, dataFrameToA
   
   
 
-  # ----------------------------------------------------------------------
+  # -----------------------------------------------------------------------
   # Confirm that names of target table match input data.frame [dataFrameToAdd]
   # NOTE: If the first column in SQL table is "rowid" then it is the PROPER KEY. This is a SERIAL data type, and is handled automatically by PSQL
   
@@ -112,7 +122,7 @@ sql_addCensusDataToDatabase <- function(dbConnection, sqlTableName, dataFrameToA
   }
   
   
-  # -----------------------------------------------------------------------
+  # ~ PROCESSING ~ --------------------------------------------------------
   # Transform data.frame into format for SQL input, e.g. ->
   ### dbGetQuery(con, "
   ###   INSERT INTO states_info (state_id, state_name, state_abbrev)
@@ -132,6 +142,8 @@ sql_addCensusDataToDatabase <- function(dbConnection, sqlTableName, dataFrameToA
   }
   
   
+
+  # ~ MAIN ~  ------------------------------------------------------------
   # Create list of values to insert ---------------------------------------
   sql_dataToAdd_values <- "VALUES "
   
@@ -155,7 +167,7 @@ sql_addCensusDataToDatabase <- function(dbConnection, sqlTableName, dataFrameToA
   dbGetQuery(dbConnection, sql_dataToAdd_complete)
   
 
-  # -----------------------------------------------------------------------
+  # ~ CHECK ~ -------------------------------------------------------------
   # Query database to confirm the data was written by checking first line of [dataFrameToAdd]
   
   # Run query used to check if data existed in the first place [sql_dataExistsCheckStatement]
@@ -165,7 +177,9 @@ sql_addCensusDataToDatabase <- function(dbConnection, sqlTableName, dataFrameToA
     stop("ERROR: Data WAS NOT WRITTEN (based on check of first row in [dataFrameToAdd])")
   }
   
-  # Close [dbConnection] ----------------------------------------------------
+
+  # ~ EXIT ~ --------------------------------------------------------------
+  # Close [dbConnection] --------------------------------------------------
   print("Database disconnected:")
   dbDisconnect(dbConnection)
 
