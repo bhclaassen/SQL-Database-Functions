@@ -6,7 +6,7 @@
 # Updated: 2023-09-16
 # -------------------------------------------------------------------------
 
-sql_addCensusDataToDatabase <- function(dbConnection, sqlTableName, dataFrameToAdd, ifCloseConnection = TRUE) {
+sql_addCensusDataToDatabase <- function(dbConnection, sqlTableName, dataFrameToAdd, closeConnection = TRUE) {
   
   # Libraries -------------------------------------------------------------
   require("tidyverse")
@@ -180,7 +180,7 @@ sql_addCensusDataToDatabase <- function(dbConnection, sqlTableName, dataFrameToA
 
   # ~ EXIT ~ --------------------------------------------------------------
   # Close [dbConnection] --------------------------------------------------
-  if(ifCloseConnection) {
+  if(closeConnection) {
     print("Database disconnected:")
     dbDisconnect(dbConnection)
   }

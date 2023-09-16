@@ -20,34 +20,53 @@ con <- dbConnect("PostgreSQL", dbname = "themines",
 # Internal function values ------------------------------------------------
 
 dbConnection <- con
-sql_givenQuery <- "SELECT *    FROM states WHERE state_geoid < 100"
+keepGeographyName = FALSE
+closeConnection = TRUE
+
+sqlQuery <- "SELECT *    FROM states WHERE st_var_name = 'TotalPopulation'"
 head(
-  dbGetQuery(con, sql_givenQuery)
+  dbGetQuery(con, sqlQuery)
+)
+dim(
+  dbGetQuery(con, sqlQuery)
 )
 
 # -------------------------------------------------------------------------
 
-pullSqlData <- function(dbConnection, sql_givenQuery) {
+# pullSqlData <- function(dbConnection, sqlQuery, keepGeographyName = FALSE, closeConnection = TRUE) {
   
-  # Steps:
-  # ~DONE~ Confirm connection exists
-  # ~DONE~ Confirm table exists
-  # Pass the query to sql
-  # Transform form long format to wide format
+  # Steps -----------------------------------------------------------------
+  
+  # CHECKs
+  ## ~DONE~ Confirm connection exists
+  ## ~DONE~ Extract table name from query and confirm table exists
+  
+  # MAIN
+  ## Pass the query to sql
+  
+  # PROCESSING
+  ## Transform form long format to wide format
+  
+  # RETURN AND EXIT
+  ## Close connection
+  ## Return queried data
   
 
   # Libraries -------------------------------------------------------------
   require("tidyverse")
   require("RPostgreSQL")
   
+
+  # ~ CHECKS ~  -----------------------------------------------------------
   # Confirm connection is valid -> [dbConnection] must be a "PostgreSQLConnection", else throw error
   if(class(dbConnection) != 'PostgreSQLConnection') {
     stop("ERROR: [dbConnection] must be a useable database connection")
   }
   
-  
+
+  # -----------------------------------------------------------------------
   # Extract sql table name from query
-  sqlTableName_interim <- gsub("\\s+", " ", sql_givenQuery) # Replace any multiple-spaces with a single space
+  sqlTableName_interim <- gsub("\\s+", " ", sqlQuery) # Replace any multiple-spaces with a single space
   sqlTableName_interim <- strsplit(sqlTableName_interim, " ") # Split query by space
   tmp_sqlQueryTableNameSegmentID <- which(sqlTableName_interim[[1]] == "FROM") # Find which single word in query is 'FROM' [table]
   sqlTableName <- sqlTableName_interim[[1]][tmp_sqlQueryTableNameSegmentID + 1] # Pull the [table] specified 1 word after 'FROM'
@@ -66,13 +85,57 @@ pullSqlData <- function(dbConnection, sql_givenQuery) {
     stop( tableExistenceErrorStatement )
   }
   rm(ifTableExists) # Remove status if true, i.e. if statement above evaluates TRUE
+
+
+  # ~ MAIN ~  -------------------------------------------------------------
+  # Pass query to SQL database
+  dat_internal1 <- dbGetQuery(dbConnection, sqlQuery)
+
+
+  # ~ PROCESSING ~  -------------------------------------------------------
+  # Transform form long format to wide format
+  # Col Names ->
+  ##  - [geoid]
+  ##  - [name] (if requested)
+  ##  - [var est]
+  ##  - [var moe]
+  
+
+  # Find columns to keep
+  colName_geoid <- grep("geoid", names(dat_internal1))
+  colName_name <- grep("", names(dat_internal1))
+  colName_varEst <- grep("", names(dat_internal1))
+  colName_varMOE <- grep("", names(dat_internal1))
+  
+  # Collate columns to keep
+  if(keepGeographyName) {
+    varNamesToKeep <- c()
+  } else {
+    varNamesToKeep <- c()
+  }
+  
+  # Select columns to keep
+  dat_internal2 <- dat_internal1 %>% 
     
+  # Rename columns
+  
     
 
+  # -----------------------------------------------------------------------
+  # Transform data from long-format to wide-format
+  
+    
   
   
   
   
   
-  return()
-}
+  # ~ RETURN AND EXIT ~ ---------------------------------------------------
+  # Close [dbConnection] --------------------------------------------------
+  if(closeConnection) {
+    print("Database disconnected:")
+    dbDisconnect(dbConnection)
+  }
+  
+  return(...)
+# }
