@@ -7,32 +7,6 @@
 # Updated: 2023-09-16
 # -------------------------------------------------------------------------
 
-require("tidyverse")
-require("RPostgreSQL")
-
-# Setup connection with database
-con <- dbConnect("PostgreSQL", dbname = "themines",
-                 host = "127.0.0.1", port = 5432,
-                 user = "benclaassen", password = "")
-
-# Internal function values ------------------------------------------------
-
-dbConnection <- con
-keepGeographyName = TRUE
-closeConnection = FALSE
-
-# sqlQuery <- "SELECT *    FROM states WHERE st_var_name = 'TotalPopulation'"
-sqlQuery <- "SELECT *    FROM states WHERE state_geoid < 100 "
-
-head(
-  dbGetQuery(con, sqlQuery)
-)
-dim(
-  dbGetQuery(con, sqlQuery)
-)
-
-# -------------------------------------------------------------------------
-
 pullSqlData <- function(dbConnection, sqlQuery, keepGeographyName = FALSE, closeConnection = TRUE) {
   
   # Steps -----------------------------------------------------------------
@@ -163,8 +137,3 @@ pullSqlData <- function(dbConnection, sqlQuery, keepGeographyName = FALSE, close
   
   return(dat_internal4)
 }
-
-
-# sqlQuery <- "SELECT *    FROM states WHERE st_var_name = 'TotalPopulation'"
-sqlQuery <- "SELECT *    FROM states WHERE state_geoid < 100 "
-head(pullSqlData(con, sqlQuery, TRUE, FALSE))
