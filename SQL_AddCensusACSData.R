@@ -1,4 +1,5 @@
 
+# Has all but check if data already exists --------------------------------
 
 # -------------------------------------------------------------------------
 # -------------------------------------------------------------------------
@@ -12,17 +13,19 @@
 # con <- dbConnect("PostgreSQL", dbname = "themines",
 #                  host = "127.0.0.1", port = 5432,
 #                  user = "benclaassen", password = "")
-# # Test connection
-# dbGetQuery(con, 'SELECT * FROM states_info')
+# Test connection
+# head(
+#   dbGetQuery(con, 'SELECT * FROM states_info')
+# )
 # 
 
 # -------------------------------------------------------------------------
 # Example with population write -------------------------------------------
-
-# setwd("/Users/benclaassen/Documents/_Mines/Data_MAIN/_RawDownloads/Census/ACS 2020 5yr/States/Age and Sex")
-# pop1 <- read.csv("ACSST5Y2020.S0101-Data.csv") # Read data
 # 
+# setwd("/Users/benclaassen/Documents/_Mines/Data_MAIN/_RawDownloads/Census/ACS 2020 5yr/States/Age and Sex")# setwd("/Users/benclaassen/Documents/_Mines/Data_MAIN/_Ra# # setwd("/Users/benclaassen/Documents/_Mines/Data_MAIN/_RawDownloads/Census/ACS 2020 5yr/States/Age and Sex
+# pop1 <- read.csv("ACSST5Y2020.S0101-Data.csv") # Read data
 # pop2 <- pop1 %>% select(GEO_ID, NAME, S0101_C01_001E, S0101_C01_001M) # Select cols
+# 
 # 
 # names(pop2) <- c("GEO_ID", "StateName", "TotalPop_Est", "TotalPop_MOE") # Rename cols
 # head(pop2)
@@ -32,9 +35,9 @@
 # pop2$Id <- gsub("0400000US", "", pop2$GEO_ID) # Create integer ID col
 # 
 # # Change class of est, moe, and id
-# sapply(pop2[,3:5], class)
-# pop2[,3:5] <- sapply(pop2[,3:5], as.numeric)
-# sapply(pop2[,3:5], class)
+# sapply(pop2[,3:5], class)pop2[,3:5] <- sapply(pop2[,3:5], as.numeric)s
+# 
+# apply(pop2[,3:5], class)
 # 
 # # Check [pop2]
 # summary(pop2)
@@ -45,6 +48,53 @@
 # summary(pop3)
 # head(pop3)
 # 
+# 
+# pop4 <- pop3 %>% select(Id, StateName, TotalPop_Est, TotalPop_MOE)
+# 
+# head(pop4)
+# sapply(pop4, class)
+# 
+# 
+# pop5 <- pop4[,c(1:2)]
+# head(pop5)
+# names(pop5) <- c("state_geoid", "state_name")
+# 
+# pop5$st_var_id <- "S0101_C01_001"
+# pop5$st_var_name <- "TotalPopulation"
+# pop5$st_var_est <- pop4[,3]
+# pop5$st_var_moe <- pop4[,4]
+# 
+# pop5$st_var_source <- "Census ACS"
+# pop5$st_var_year <- 2020
+# pop5$st_var_otherspecs <- "5yr estimates"
+# 
+# head(pop5)
+# 
+
+
+
+
+# -------------------------------------------------------------------------
+
+# rowid
+# state_geoid
+# state_name
+# st_var_id
+# st_var_name
+# st_var_est
+# st_var_moe
+# st_var_source
+# st_var_year
+# st_var_otherspecs
+
+# -------------------------------------------------------------------------
+# inc1 <- read.csv("ACSST5Y2020.S1903-Data.csv") # Read data
+# 
+# inc2 <- inc1 %>% select(GEO_ID, NAME, S1903_C03_001E, S1903_C03_001M) # Select cols
+# 
+# names(inc2) <- c("GEO_ID", "StateName", "MedianHHIncome_Est", "MedianHHIncome_MOE") # Rename cols
+# head(inc2)
+# inc2 <- inc2[-1,] # Drop ACS names
 # 
 # pop4 <- pop3 %>% select(Id, StateName, TotalPop_Est, TotalPop_MOE)
 # 
@@ -140,36 +190,28 @@
 # 
 # head(inc5)
 # sapply(inc5, class)
-# 
-# 
-# # Write data using function
+
+
+# Write data using function
 # sql_addCensusDataToDatabase(dbConnection = con, sqlTableName = "states", dataFrameToAdd = inc5)
 # 
 
-# -------------------------------------------------------------------------
-
-
-
 
 sql_addCensusDataToDatabase <- function(dbConnection, sqlTableName, dataFrameToAdd) {
-
+  
 
 # Shorthand steps ---------------------------------------------------------
 # ~DONE~ check for input errors
 # ~DONE~ set connection
 # ~DONE~ pull table names
 # ~DONE~ confirm sql table names match input data.frame table names
-# convert [dataFrameToAdd] to sql format
-# write [dataFrameToAdd] to table
-# close db connection
+# check if data already exists
+# ~DONE~ convert [dataFrameToAdd] to sql format
+# ~DONE~ write [dataFrameToAdd] to table
+# ~DONE~ confirm first row of [dataFrameToAdd] is in sql table
+# ~DONE~ close db connection
 
   
-
-# -------------------------------------------------------------------------
-# START FCN UPDATE --------------------------------------------------------
-# -------------------------------------------------------------------------
-
-
   # -----------------------------------------------------------------------
   # Check for input errors ------------------------------------------------
   
@@ -218,8 +260,13 @@ sql_addCensusDataToDatabase <- function(dbConnection, sqlTableName, dataFrameToA
   }
   
   
+
+  # Once formatting is confirmed, check if data already exists ------------
+
+  
+  
   # -----------------------------------------------------------------------
-  # Transform data.frame into format for SQL input
+  # Transform data.frame into format for SQL input, e.g. ->
   ### dbGetQuery(con, "
   ###   INSERT INTO states_info (state_id, state_name, state_abbrev)
   ###   VALUES (5, 'Arkansas', 'AR') ( , , );
@@ -251,9 +298,9 @@ sql_addCensusDataToDatabase <- function(dbConnection, sqlTableName, dataFrameToA
   
   # Assemble final SQL command to insert data
   dataToAdd_complete <- paste0(
-  "INSERT INTO ", sqlTableName, " (", paste0(names(dataFrameToAdd), collapse = ", "), ") ",
-  # "INSERT INTO ", sqlTableName, " (state_geoid, state_name, st_var_id, ) ",
-  dataToAdd_values
+    "INSERT INTO ", sqlTableName, " (", paste0(names(dataFrameToAdd), collapse = ", "), ") ",
+    # "INSERT INTO ", sqlTableName, " (state_geoid, state_name, st_var_id, ) ",
+    dataToAdd_values
   )
   
   # Final Command
@@ -261,11 +308,64 @@ sql_addCensusDataToDatabase <- function(dbConnection, sqlTableName, dataFrameToA
   dbGetQuery(dbConnection, dataToAdd_complete)
   
 
-# -------------------------------------------------------------------------
-# Add a query check
 
-# -------------------------------------------------------------------------
+  # -----------------------------------------------------------------------
+  # Query database to confirm the data was written by checking first line of [dataFrameToAdd]
+  # dbGetQuery(con, 
+  #   "SELECT st_var_est, st_var_moe
+  #   FROM states
+  #   WHERE st_var_name = 'TotalPopulation' AND state_name = 'Alabama';"
+  # )
+
+
 
   
+  # Get column name for estimates
+  tmp_estColName <- names(dataFrameToAdd)[
+      grep(
+      "_est$", names(dataFrameToAdd)
+    )
+  ]
+  
+  # Get column name for MOEs
+  tmp_moeColName <- names(dataFrameToAdd)[
+      grep(
+      "_moe$", names(dataFrameToAdd)
+    )
+  ]
+  
+  # Get column name for variable name
+  tmp_varColName <- names(dataFrameToAdd)[
+      grep(
+      "_var_name$", names(dataFrameToAdd)
+    )
+  ]
+  
+  # Get value for variable name column in [dataframeToAdd]
+  tmp_dataVarName <- dataFrameToAdd %>% select(tmp_varColName) %>% slice_head(n=1) %>% as.character()
+
+  tmp_firstRow_DataCheck_sqlTable <- dbGetQuery(con,
+    paste0(
+     "SELECT ", tmp_estColName, ", ", tmp_moeColName,
+      " FROM ", sqlTableName,
+      " WHERE ", names(dataFrameToAdd)[1], " = ", dataFrameToAdd[1,1], " AND ", tmp_varColName, " = ", tmp_dataVarName, ";" 
+    )
+  )[1,]
+  
+  tmp_firstRow_DataCheck_inputTable <- as.data.frame(dataFrameToAdd[1,] %>% select(tmp_estColName, tmp_moeColName))
+  
+  
+  if( all(tmp_firstRow_DataCheck_sqlTable == tmp_firstRow_DataCheck_inputTable) ) {
+    print("Data write successful - FUNCTION ENDS")
+  } else {
+    stop("ERROR: Data to write not found in given SQL table")
+  }
+
+  
+  # Close [dbConnection] ----------------------------------------------------
+  print("Database disconnected:")
+  dbDisconnect(dbConnection)
+  
+
 }
 
