@@ -206,7 +206,7 @@ sql_addCensusDataToDatabase <- function(dbConnection, sqlTableName, dataFrameToA
 # ~DONE~ set connection
 # ~DONE~ pull table names
 # ~DONE~ confirm sql table names match input data.frame table names
-# check if data already exists
+# ~DONE~ check if data already exists
 # ~DONE~ convert [dataFrameToAdd] to sql format
 # ~DONE~ write [dataFrameToAdd] to table
 # ~DONE~ confirm first row of [dataFrameToAdd] is in sql table
@@ -263,7 +263,41 @@ sql_addCensusDataToDatabase <- function(dbConnection, sqlTableName, dataFrameToA
   
 
   # Once formatting is confirmed, check if data already exists ------------
-
+  # E.g.: SELECT 1 FROM MyTable WHERE <condition>
+  
+  # Initialize sql query to look for first row of [dataFrameToAdd]
+  sql_dataExistsCheckStatement <- paste0("SELECT 1 FROM ", sqlTableName, " WHERE ")
+  
+  # Add each of the columns to the query except the last column
+  for(n in 1:( length(names(dataFrameToAdd)) - 1) ) {
+    if( is.character(dataFrameToAdd[,n]) ) { # If variable is a character, put the value in single-quotes
+      sql_dataExistsCheckStatement <- paste0(sql_dataExistsCheckStatement, 
+        names(dataFrameToAdd)[n], " = '", dataFrameToAdd[1,n], "' AND "
+      )
+    } else {
+      sql_dataExistsCheckStatement <- paste0(sql_dataExistsCheckStatement, 
+        names(dataFrameToAdd)[n], " = ", dataFrameToAdd[1,n], " AND "
+      )
+    }
+  }
+  
+  # Add the last column to the query
+  if( is.character(dataFrameToAdd[,n+1]) ) {
+      sql_dataExistsCheckStatement <- paste0(sql_dataExistsCheckStatement, 
+        names(dataFrameToAdd)[n+1], " = '", dataFrameToAdd[1,n+1], "';"
+      )
+    } else {
+      sql_dataExistsCheckStatement <- paste0(sql_dataExistsCheckStatement, 
+        names(dataFrameToAdd)[n+1], " = ", dataFrameToAdd[1,n+1], ";"
+      )
+    }
+  
+  # Run query. If any of the returns are TRUE, exit function, else proceed
+  if( any( dbGetQuery(dbConnection, sql_dataExistsCheckStatement) ) ) {
+    stop("ERROR: Data already exists in table (based on check of first row in [dataFrameToAdd])")
+  } else {
+    print( paste0("NOTE: First row of [dataFrameToAdd] not found -> adding given data to [", sqlTableName, "]") )
+  }
   
   
   # -----------------------------------------------------------------------
@@ -287,86 +321,41 @@ sql_addCensusDataToDatabase <- function(dbConnection, sqlTableName, dataFrameToA
   
   
   # Create list of values to insert ---------------------------------------
-  dataToAdd_values <- "VALUES "
+  sql_dataToAdd_values <- "VALUES "
   
   for(i in 1:dim(dataFrameToAdd)[1]) {
-    dataToAdd_values <- paste0(dataToAdd_values, "(", paste(dataFrameToAdd[i,], collapse= ", "), "), ") # Collapse rows to: "(, , , ),"
+    sql_dataToAdd_values <- paste0(sql_dataToAdd_values, "(", paste(dataFrameToAdd[i,], collapse= ", "), "), ") # Collapse rows to: "(, , , ),"
   }
   
-  # Substitute last comma for a semicolon in [dataToAdd_values]
-  dataToAdd_values <- sub("), $", ");", dataToAdd_values)
+  # Substitute last comma for a semicolon in [sql_dataToAdd_values]
+  sql_dataToAdd_values <- sub("), $", ");", sql_dataToAdd_values)
   
   
   # Assemble final SQL command to insert data
-  dataToAdd_complete <- paste0(
+  sql_dataToAdd_complete <- paste0(
     "INSERT INTO ", sqlTableName, " (", paste0(names(dataFrameToAdd), collapse = ", "), ") ",
     # "INSERT INTO ", sqlTableName, " (state_geoid, state_name, st_var_id, ) ",
-    dataToAdd_values
+    sql_dataToAdd_values
   )
   
   # Final Command
-  # Insert data into [sqlTableName] using command in [dataToAdd_complete]
-  dbGetQuery(dbConnection, dataToAdd_complete)
+  # Insert data into [sqlTableName] using command in [sql_dataToAdd_complete]
+  dbGetQuery(dbConnection, sql_dataToAdd_complete)
   
-
 
   # -----------------------------------------------------------------------
   # Query database to confirm the data was written by checking first line of [dataFrameToAdd]
-  # dbGetQuery(con, 
-  #   "SELECT st_var_est, st_var_moe
-  #   FROM states
-  #   WHERE st_var_name = 'TotalPopulation' AND state_name = 'Alabama';"
-  # )
-
-
-
   
-  # Get column name for estimates
-  tmp_estColName <- names(dataFrameToAdd)[
-      grep(
-      "_est$", names(dataFrameToAdd)
-    )
-  ]
-  
-  # Get column name for MOEs
-  tmp_moeColName <- names(dataFrameToAdd)[
-      grep(
-      "_moe$", names(dataFrameToAdd)
-    )
-  ]
-  
-  # Get column name for variable name
-  tmp_varColName <- names(dataFrameToAdd)[
-      grep(
-      "_var_name$", names(dataFrameToAdd)
-    )
-  ]
-  
-  # Get value for variable name column in [dataframeToAdd]
-  tmp_dataVarName <- dataFrameToAdd %>% select(all_of(tmp_varColName)) %>% slice_head(n=1) %>% as.character()
-
-  tmp_firstRow_DataCheck_sqlTable <- dbGetQuery(con,
-    paste0(
-     "SELECT ", tmp_estColName, ", ", tmp_moeColName,
-      " FROM ", sqlTableName,
-      " WHERE ", names(dataFrameToAdd)[1], " = ", dataFrameToAdd[1,1], " AND ", tmp_varColName, " = ", tmp_dataVarName, ";" 
-    )
-  )[1,]
-  
-  tmp_firstRow_DataCheck_inputTable <- as.data.frame(dataFrameToAdd[1,] %>% select(tmp_estColName, tmp_moeColName))
-  
-  
-  if( all(tmp_firstRow_DataCheck_sqlTable == tmp_firstRow_DataCheck_inputTable) ) {
+  # Run query used to check if data existed in the first place [sql_dataExistsCheckStatement]
+  if( any( dbGetQuery(dbConnection, sql_dataExistsCheckStatement) ) ) {
     print("Data write successful - FUNCTION ENDS")
   } else {
-    stop("ERROR: Data to write not found in given SQL table")
+    stop("ERROR: Data WAS NOT WRITTEN (based on check of first row in [dataFrameToAdd])")
   }
-
   
   # Close [dbConnection] ----------------------------------------------------
   print("Database disconnected:")
   dbDisconnect(dbConnection)
-  
 
 }
 
