@@ -1,12 +1,12 @@
 
 # -------------------------------------------------------------------------
 # Function to add Census data to SQL database
-# Author: Ben Claassen
+# Ben Claassen
 # Started: 2023-08-04
 # Updated: 2023-09-16
 # -------------------------------------------------------------------------
 
-sql_addCensusDataToDatabase <- function(dbConnection, sqlTableName, dataFrameToAdd) {
+sql_addCensusDataToDatabase <- function(dbConnection, sqlTableName, dataFrameToAdd, ifCloseConnection = TRUE) {
   
   # Libraries -------------------------------------------------------------
   require("tidyverse")
@@ -180,8 +180,9 @@ sql_addCensusDataToDatabase <- function(dbConnection, sqlTableName, dataFrameToA
 
   # ~ EXIT ~ --------------------------------------------------------------
   # Close [dbConnection] --------------------------------------------------
-  print("Database disconnected:")
-  dbDisconnect(dbConnection)
+  if(ifCloseConnection) {
+    print("Database disconnected:")
+    dbDisconnect(dbConnection)
+  }
 
 }
-
