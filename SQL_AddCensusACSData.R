@@ -8,8 +8,8 @@
 # 
 # require("RPostgreSQL")
 # require("tidyverse")
-# 
-# # Setup connection with database
+
+# Setup connection with database
 # con <- dbConnect("PostgreSQL", dbname = "themines",
 #                  host = "127.0.0.1", port = 5432,
 #                  user = "benclaassen", password = "")
@@ -141,7 +141,7 @@
 # dataFrameToAdd = pop5
 # -------------------------------------------------------------------------
 # Example with income write -----------------------------------------------
-# 
+
 # setwd("/Users/benclaassen/Documents/_Mines/Data_MAIN/_RawDownloads/Census/ACS 2020 5yr/States/Median Income")
 # inc1 <- read.csv("ACSST5Y2020.S1903-Data.csv") # Read data
 # 
@@ -342,7 +342,7 @@ sql_addCensusDataToDatabase <- function(dbConnection, sqlTableName, dataFrameToA
   ]
   
   # Get value for variable name column in [dataframeToAdd]
-  tmp_dataVarName <- dataFrameToAdd %>% select(tmp_varColName) %>% slice_head(n=1) %>% as.character()
+  tmp_dataVarName <- dataFrameToAdd %>% select(all_of(tmp_varColName)) %>% slice_head(n=1) %>% as.character()
 
   tmp_firstRow_DataCheck_sqlTable <- dbGetQuery(con,
     paste0(
